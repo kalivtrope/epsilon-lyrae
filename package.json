@@ -1,0 +1,24 @@
+{
+  "name": "epsilon-lyrae",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "repository": "git@github.com:kalivtrope/epsilon-lyrae.git",
+  "author": "Kristyna Petrlikova <petrlik@matfyz.cz>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "nodemon": "^3.1.4",
+    "rimraf": "^6.0.1",
+    "vega": "^5.30.0"
+  },
+  "scripts": {
+    "build": "rimraf ./build && tsc",
+    "dev": "nodemon",
+    "start": "yarn run build && node build/index.js"
+  }
+}
