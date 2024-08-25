@@ -28,7 +28,9 @@ function hasSignal(x: any) {
   return false;
 }
 
-async function loadDataset(dataset: any){
+type Dict = {[index: string]: any}
+
+async function loadDataset(dataset: any, outDatasets: Dict){
   let loader = vega.loader()
   let name: string = ""
   let out: any
@@ -56,18 +58,30 @@ async function loadDataset(dataset: any){
   else if(dataset.source){
     vega.error("not implemented yet")
   }
-  console.log(name)
   out = out.map(function(val: any){
     if(!isObject(val)){
       return {"data": val}
     }
     return val
     })
-  console.log(out)
+  outDatasets[name] = out
+}
+
+async function loadDatasets(dataSpec: any){
+  let outDatasets: Dict = {}
+  for(let key of toArray(dataSpec)){
+    await loadDataset(key, outDatasets)
+  }
+  return outDatasets
 }
 
 let rawSpec = fs.readFileSync(0, 'utf-8');
 let parsedSpec = JSON.parse(rawSpec)
 
+function checkDataTabularity(data: Dict){
 
-toArray(parsedSpec.data).forEach(x => loadDataset(x))
+}
+
+loadDatasets(parsedSpec.data).then((outDatasets) => {
+  checkDataTabularity(outDatasets);
+})
