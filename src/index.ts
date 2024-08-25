@@ -1,9 +1,7 @@
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
-//import vegaSchema from 'vega/build/vega-schema.json';
-//import jsonSchema from 'ajv/dist/refs/json-schema-draft-06.json'
 import * as fs from 'fs';
 import * as vega from 'vega';
+
+let error = vega.error
 
 function isSignal(x: any): boolean {
   return x && x.signal;
@@ -13,7 +11,7 @@ function isObject(x: any): x is {[index: string]: any} {
   return x === Object(x)
 }
 
-function toArray(x: any): any[] {
+function toArray(x: any): any[] { // convert x to array if it isn't an array already
   return x != null ? (Array.isArray(x) ? x : [x]) : [];
 }
 
@@ -32,39 +30,45 @@ type Dict = {[index: string]: any}
 
 async function loadDataset(dataset: any, outDatasets: Dict){
   let loader = vega.loader()
-  let name: string = ""
-  let out: any
+  let name: string = dataset.name
+  let outData: any
   if(dataset.values){
     if(isSignal(dataset.values) || hasSignal(dataset.format)){
-      vega.error("Signals aren't supported")
+      error("Signals aren't supported")
     }
     else {
-      name = dataset.name
-      out = vega.read(dataset.values, dataset.format)
+      outData = vega.read(dataset.values, dataset.format)
     }
   }
+
   else if(dataset.url){
     if(hasSignal(dataset.url) || hasSignal(dataset.format)){
-      vega.error("Signals aren't supported")
+      error("Signals aren't supported")
     }
     else{
-      name = dataset.name
-      await loader.load(dataset.url).then(function(ds){
-          out = vega.read(ds, dataset.format)
-          console.log(out)
+      await loader.load(dataset.url).then((ds) => {
+        outData = vega.read(ds, dataset.format);
       });
     }
   }
+
   else if(dataset.source){
-    vega.error("not implemented yet")
-  }
-  out = out.map(function(val: any){
-    if(!isObject(val)){
-      return {"data": val}
-    }
-    return val
+    let sources = toArray(dataset.source);
+    outData = sources.flatMap((source: string) => {
+      if(!outDatasets[source]){
+        error(`dataset ${source} is not defined`)
+      }
+      return outDatasets[source]
     })
-  outDatasets[name] = out
+  }
+
+  outData = outData.map((val: any) => {
+    if (!isObject(val)) {
+      return { "data": val };
+    }
+    return val;
+  })
+  outDatasets[name] = outData
 }
 
 async function loadDatasets(dataSpec: any){
