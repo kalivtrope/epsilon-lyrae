@@ -69,19 +69,13 @@ type Intersection = {
 
 type Shape = {[key: string]: Shape} | Shape[]
 
-type MismatchedValueError = {
-  type: "mismatchedValue",
-  context: Context,
-  mismatchedKey: string,
-  possibleValues: string[]
-}
 type MismatchedDatumError = {
   type: "mismatchedDatum"
   context: Context,
   possibleTypes: string[]
 }
 
-type InconsistentDataError = IncompleteFieldError | MismatchedValueError | MismatchedDatumError
+type InconsistentDataError = IncompleteFieldError | MismatchedDatumError
 
 function getKeyIntersection(dataset: Dict, ctx: Context): Intersection | IncompleteFieldError {
   if(dataset.length == 0){
@@ -170,16 +164,13 @@ function tryGetShape(dataset: Dict, ctx: Context): Shape | InconsistentDataError
 function isIncompleteError(val: any): val is IncompleteFieldError {
   return (val as IncompleteFieldError).type == "incompleteField"
 }
-function isMismatchedValueError(val: any): val is MismatchedValueError {
-  return (val as MismatchedValueError).type == "mismatchedValue"
-}
 
 function isMismatchedDatumError(val: any): val is MismatchedDatumError {
   return (val as MismatchedDatumError).type == "mismatchedDatum"
 }
 
 function isInconsistentDataError(val: any): val is InconsistentDataError {
-  return isIncompleteError(val) || isMismatchedValueError(val) || isMismatchedDatumError(val)
+  return isIncompleteError(val) || isMismatchedDatumError(val)
 }
 
 function handleObjectValues(dataset: Dict, ctx: Context): {[key: string]: Shape} | InconsistentDataError {
