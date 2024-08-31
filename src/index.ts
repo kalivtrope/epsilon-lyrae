@@ -110,7 +110,10 @@ function getKeyIntersection(dataset: Dict, ctx: Context): Intersection | Incompl
   if(incompleteKeys.size > 0){
     return {
       type: "incompleteField",
-      context: ctx,
+      context: {
+        datasetName: ctx.datasetName,
+        indices: ctx.indices.slice()
+      },
       incompleteKeys: [...incompleteKeys],
       completeKeys: [...keyIntersection]
     }
@@ -146,7 +149,10 @@ function tryGetShape(dataset: Dict, ctx: Context): Shape | InconsistentDataError
   if(valTypes.length > 1){
     return {
       type: "mismatchedDatum",
-      context: ctx,
+      context: {
+        datasetName: ctx.datasetName,
+        indices: ctx.indices.slice()
+      },
       possibleTypes: valTypes
     }
   }
