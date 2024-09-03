@@ -1,9 +1,10 @@
 import { parseField } from "../fieldParsing";
-import { Field, getInputField, Path, Result, toResult } from "../commonTypes";
+import { failure, Field, getInputField, Path, Result, toResult } from "../commonTypes";
 import { AggregateTransform } from "./Aggregate";
 import { shapeAt } from "../lookup/main";
 import { Scope } from "../scope";
 import { Shape } from "../shape-inference/types";
+import * as ErrorLogger from "../logging/errorLogger"
 
 
 export function toPath(val: Field): Path {
@@ -19,3 +20,25 @@ export function toShapeResultArray(vals: Field[], datasetName: string, scope: Sc
 
 export type TransformResult = Result<Transform>
 export type Transform = AggregateTransform
+
+
+
+export class TransformParser {
+  fromSpec(spec: {'type': string}): Result<Transform> {
+    switch(spec.type){
+      case 'aggregate':
+        return AggregateTransform.fromSpec(spec)
+      // case 'stack':
+        //return new StackTransform();
+      default:
+        ErrorLogger.logError({
+          location: ["TODO"],
+          error: {
+            type: "unknownTransform",
+            name: spec.type
+          }
+        })
+        return failure
+    }
+  }
+}

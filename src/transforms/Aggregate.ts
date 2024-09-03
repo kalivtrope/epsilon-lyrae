@@ -1,7 +1,6 @@
 import { toResult, failure, Field, isFailure, Result, getOutputField, isResultArray, } from "../commonTypes"
 import { Shape } from "../shape-inference/types"
 import { toPath, toShapeResultArray, Transform } from "./transform"
-import * as ErrorLogger from "../logging/errorLogger"
 import { zip } from "../jsTypes"
 import { checkFieldArrayFormat, checkFieldFormat, checkStringArrayFormat } from "./formatChecking"
 import { shapeAt } from "../lookup/main"
@@ -45,7 +44,6 @@ export class AggregateTransform {
     // https://stackoverflow.com/questions/32002176/how-to-convert-an-array-of-key-value-tuples-into-an-object
     const outShape: Shape = Object.fromEntries(out)
     return outShape
-    
   }
   constructor(
     private groupby: Field[],
@@ -55,49 +53,31 @@ export class AggregateTransform {
     private key: Field | undefined
   ) {
   }
-}
-
-export class TransformParser {
-  fromSpec(spec: {'type': string}): Result<Transform> {
-    switch(spec.type){
-      case 'aggregate':
-        { const aggSpec = spec as {
-          'type': string,
-          'groupby': unknown,
-          'fields': unknown,
-          'ops': unknown,
-          'as': unknown,
-          'key': unknown                 
-          }   
-        if(!checkFieldArrayFormat(aggSpec.groupby, "groupby")
-        || !checkFieldArrayFormat(aggSpec.fields, "fields")
-        || !checkStringArrayFormat(aggSpec.ops, "ops")
-        || !checkStringArrayFormat(aggSpec.as, "as")
-        || !checkFieldFormat(aggSpec.key, "key")){
-          return failure;
-        } 
-        const groupby = aggSpec.groupby || []
-        const _fields = (aggSpec.fields || [])
-        if(!_fields.every(val => !isFailure(val))){
-          return failure
-        }
-        const fields = _fields.map(toResult)
-        const ops = (aggSpec.ops || ['count'])
-        const as = aggSpec.as || []
-        const key = aggSpec.key
-        return new AggregateTransform(groupby, fields, ops, as, key);
-      }
-      // case 'stack':
-        //return new StackTransform();
-      default:
-        ErrorLogger.logError({
-          location: ["TODO"],
-          error: {
-            type: "unknownTransform",
-            name: spec.type
-          }
-        })
-        return failure
+  static fromSpec(spec: {'type': string}): Result<Transform> {
+    const aggSpec = spec as {
+      'type': string,
+      'groupby': unknown,
+      'fields': unknown,
+      'ops': unknown,
+      'as': unknown,
+      'key': unknown                 
+      }   
+    if(!checkFieldArrayFormat(aggSpec.groupby, "groupby")
+    || !checkFieldArrayFormat(aggSpec.fields, "fields")
+    || !checkStringArrayFormat(aggSpec.ops, "ops")
+    || !checkStringArrayFormat(aggSpec.as, "as")
+    || !checkFieldFormat(aggSpec.key, "key")){
+      return failure;
+    } 
+    const groupby = aggSpec.groupby || []
+    const _fields = (aggSpec.fields || [])
+    if(!_fields.every(val => !isFailure(val))){
+      return failure
     }
+    const fields = _fields.map(toResult)
+    const ops = (aggSpec.ops || ['count'])
+    const as = aggSpec.as || []
+    const key = aggSpec.key
+    return new AggregateTransform(groupby, fields, ops, as, key);
   }
 }
