@@ -3,8 +3,8 @@ import { Dict, failure, isFailure } from './commonTypes';
 import { loadDataset } from './data-loading/main'
 import { toArray } from './jsTypes';
 import { getDatasetShape } from './shape-inference/main';
-import { TransformParser } from './transforms/Aggregate';
 import { Scope } from 'scope';
+import { TransformParser } from './transforms/transform';
 
 /*
 export function pathToString(path: Path): string {

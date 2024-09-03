@@ -42,18 +42,11 @@ export interface Context {
     indices: Path
 }
 
+export const failure: unique symbol = Symbol("failure")
 
-interface Failure {
-    type: 'failure'
+export function isFailure(val: unknown): val is (typeof failure) {
+    return val === failure
 }
-
-export function isFailure(val: unknown): val is Failure {
-    return (val as Failure).type === 'failure'
-}
-export const failure: Failure = {
-    type: 'failure'
-}
-
 export function isResultArray<T>(val: Result<T>[]): val is T[]{
     return val.every(v => !isFailure(v))
 }
@@ -65,4 +58,4 @@ export function toResult<T>(val: Result<T>): T {
     throw new Error("Trying to extract Result from Failure")
 }
 
-export type Result<T> = T | Failure
+export type Result<T> = T | typeof failure
