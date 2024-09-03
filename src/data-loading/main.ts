@@ -1,12 +1,12 @@
 import * as vega from 'vega';
 import { isObject, toArray } from '../jsTypes';
-import { Dict } from '../commonTypes';
+import { Dict, failure, Result } from '../commonTypes';
 import { Format } from 'vega';
-
-const error = vega.error
+import * as WarningLogger from '../logging/warningLogger'
+import * as ErrorLogger from '../logging/errorLogger'
 
 function isSignal(x: unknown): boolean {
-  return !!x && !!(!isObject(x) || x.signal);
+  return !!x && !!(isObject(x) && x.signal);
 }
 
 function hasSignal(x: unknown) {
@@ -20,13 +20,29 @@ function hasSignal(x: unknown) {
   return false;
 }
 
-async function loadDataset(dataset: Record<string, unknown>, outDatasets: Dict){
+export interface UnsupportedFeatureWarning {
+  type: "unsupportedFeature"
+  message: string
+}
+
+export function isUnsupportedFeatureWarning(val: unknown): val is UnsupportedFeatureWarning {
+  return (val as UnsupportedFeatureWarning).type == "unsupportedFeature"
+}
+const signalWarning: UnsupportedFeatureWarning = {
+  type: "unsupportedFeature",
+  message: "Signals aren't supported."
+}
+export async function loadDataset(dataset: Record<string, unknown>, outDatasets: Dict): Promise<Result<true>> {
     const loader = vega.loader()
     const name: string = dataset.name as string
     let outData: unknown
     if(dataset.values){
       if(isSignal(dataset.values) || hasSignal(dataset.format)){
-        error("Signals aren't supported")
+        WarningLogger.logWarning({
+          location: ["TODO"],
+          warning: signalWarning
+        })
+        return failure
       }
       else {
         outData = vega.read(dataset.values as string, dataset.format as Format)
@@ -35,7 +51,11 @@ async function loadDataset(dataset: Record<string, unknown>, outDatasets: Dict){
   
     else if(dataset.url){
       if(hasSignal(dataset.url) || hasSignal(dataset.format)){
-        error("Signals aren't supported")
+        WarningLogger.logWarning({
+          location: ["TODO"],
+          warning: signalWarning
+        })
+        return failure
       }
       else{
         await loader.load(dataset.url as string).then((ds) => {
@@ -47,7 +67,14 @@ async function loadDataset(dataset: Record<string, unknown>, outDatasets: Dict){
       const sources = toArray(dataset.source);
       outData = sources.flatMap((source) => {
         if(!outDatasets[source as string]){
-          error(`dataset ${source} is not defined`)
+          ErrorLogger.logError({
+            location: ["TODO"],
+            error:{
+              type: 'nonexistentDataset',
+              datasetName: source as string,
+              availableTables: Object.keys(outDatasets)
+            }
+          })
         }
         return outDatasets[source as string]
       })
@@ -60,12 +87,5 @@ async function loadDataset(dataset: Record<string, unknown>, outDatasets: Dict){
       return val;
     })
     outDatasets[name] = outData
-  }
-  
-export async function loadDatasets(dataSpec: unknown){
-    const outDatasets: Dict = {}
-    for(const key of toArray(dataSpec)){
-      await loadDataset(key as Record<string, unknown>, outDatasets)
-    }
-    return outDatasets
+    return true
   }

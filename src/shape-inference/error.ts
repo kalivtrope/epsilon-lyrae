@@ -15,8 +15,6 @@ interface IncompleteFieldError {
   
 type InconsistentDataError = IncompleteFieldError | MismatchedDatumError
   
-
-
 function isIncompleteError(val: unknown): val is IncompleteFieldError {
   return (val as IncompleteFieldError).type == "incompleteField"
 }

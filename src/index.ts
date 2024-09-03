@@ -1,9 +1,12 @@
 import * as fs from 'fs';
-import { Path } from './commonTypes';
-import { loadDatasets } from './data-loading/main'
-import { tryGetShape } from './shape-inference/main';
+import { Dict, failure, isFailure } from './commonTypes';
+import { loadDataset } from './data-loading/main'
+import { toArray } from './jsTypes';
+import { getDatasetShape } from './shape-inference/main';
+import { TransformParser } from './transforms/Aggregate';
+import { Scope } from 'scope';
 
-
+/*
 export function pathToString(path: Path): string {
  if(path.length == 0){
   return "";
@@ -19,16 +22,41 @@ export function pathToString(path: Path): string {
  }
  return out;
 }
-
+*/
   
 const rawSpec = fs.readFileSync(0, 'utf-8');
 const parsedSpec = JSON.parse(rawSpec)
 
-loadDatasets(parsedSpec.data).then((outDatasets) => {
-  for(const datasetName in outDatasets){
-    //error(`Not all data objects in table ${ctx.datasetName}${ctx.indices.length > 0 ? "in field " + pathToString(ctx.indices) : ""} contain these fields: ${incompleteKeys}
-//Available valid common fields are ${keyIntersection}`)
-    console.log("parsing", datasetName + ":", outDatasets[datasetName])
-    console.log(tryGetShape(outDatasets[datasetName], {datasetName: datasetName, indices: []}))
+const outDatasets: Dict = {}
+const scope: Scope = {
+  parent: undefined,
+  datasets: {}
+}
+
+async function main(){
+  for(const _dataset of toArray(parsedSpec.data)){
+    const dataset = _dataset as Record<string, unknown>
+    const datasetName = dataset.name as string
+    await loadDataset(dataset, outDatasets)
+    const shape = getDatasetShape(outDatasets[datasetName], {datasetName: datasetName, indices: []})
+    if(isFailure(shape))
+      return failure
+    scope.datasets[datasetName] = shape
+    if(dataset.transform){
+      const transforms = toArray(dataset.transform)
+      const transformParser = new TransformParser()
+      for(const _transform of transforms){
+        const transform = transformParser.fromSpec(_transform as {"type": string})
+        if(isFailure(transform)){
+          continue
+        }
+        const out = transform.transform(datasetName, scope)
+        if(isFailure(out))
+          continue
+        scope.datasets[datasetName] = out
+      }
+    }
   }
-})
+}
+
+main()
