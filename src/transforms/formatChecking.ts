@@ -3,8 +3,25 @@ import * as ErrorLogger from "../logging/errorLogger"
 import { parseField } from "../fieldParsing"
 
 
+export function checkStringFormat(val: unknown, name: string, required = false): val is string {
+  if((required && val != undefined) && typeof val !== 'string'){
+    ErrorLogger.logError(
+      {
+        location: ["TODO"],
+        error: {
+          type: "unsupportedFormat",
+          field: name,
+          actualValue: val,
+          supportedValues: "string"
+        }
+      }
+    )
+    return false
+  }
+  return true
+}
 export function checkStringArrayFormat(val: unknown, name: string, required = false): val is string[] {
-    if((required && val != undefined) && isStringArray(val)){
+    if((required && val != undefined) && !isStringArray(val)){
       ErrorLogger.logError(
         {
           location: ["TODO"],

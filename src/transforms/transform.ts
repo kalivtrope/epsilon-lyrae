@@ -1,10 +1,12 @@
 import { parseField } from "../fieldParsing";
 import { failure, Field, getInputField, Path, Result, toResult } from "../commonTypes";
-import { AggregateTransform } from "./Aggregate";
 import { shapeAt } from "../lookup/main";
 import { Scope } from "../scope";
 import { Shape } from "../shape-inference/types";
 import * as ErrorLogger from "../logging/errorLogger"
+import { AggregateTransform } from "./Aggregate";
+import { FilterTransform } from "./Filter";
+import { FormulaTransform } from "./Formula";
 
 
 export function toPath(val: Field): Path {
@@ -19,8 +21,7 @@ export function toShapeResultArray(vals: Field[], datasetName: string, scope: Sc
   }
 
 export type TransformResult = Result<Transform>
-export type Transform = AggregateTransform
-
+export type Transform = AggregateTransform | FilterTransform | FormulaTransform
 
 
 export class TransformParser {
@@ -28,8 +29,10 @@ export class TransformParser {
     switch(spec.type){
       case 'aggregate':
         return AggregateTransform.fromSpec(spec)
-      // case 'stack':
-        //return new StackTransform();
+      case 'filter':
+        return FilterTransform.fromSpec(spec)
+      case 'formula':
+        return FormulaTransform.fromSpec(spec)
       default:
         ErrorLogger.logError({
           location: ["TODO"],
