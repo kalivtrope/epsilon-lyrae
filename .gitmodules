@@ -1,0 +1,3 @@
+[submodule "vega-datasets"]
+	path = vega-datasets
+	url = https://github.com/vega/vega-datasets
