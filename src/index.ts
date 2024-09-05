@@ -37,6 +37,7 @@ async function main(){
   for(const _dataset of toArray(parsedSpec.data)){
     const dataset = _dataset as Record<string, unknown>
     const datasetName = dataset.name as string
+    console.log("started processing", datasetName)
     await loadDataset(dataset, outDatasets)
     const shape = getDatasetShape(outDatasets[datasetName], {datasetName: datasetName, indices: []})
     if(isFailure(shape))
@@ -46,16 +47,21 @@ async function main(){
       const transforms = toArray(dataset.transform)
       const transformParser = new TransformParser()
       for(const _transform of transforms){
+        console.log("got transform", _transform)
         const transform = transformParser.fromSpec(_transform as {"type": string})
         if(isFailure(transform)){
+          console.log('skipping')
           continue
         }
         const out = transform.transform(datasetName, scope)
         if(isFailure(out))
           continue
         scope.datasets[datasetName] = out
+        console.log("transformed", out)
+        // console.log("got transform:", transform)
       }
     }
+    console.log("dataset `" + datasetName + "` has shape", scope.datasets[datasetName])
   }
 }
 
