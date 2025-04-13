@@ -82,6 +82,23 @@
           [{"y": 6},4,5,6],
           [{"y": 9}, 7,8,8,9]
       ]
+    },
+    {
+      "name": "table4",
+      "values": [
+        {"foo": {"baxz": "a"}, "bar": 1},
+        {"foo": {"bz": "a"}, "bar": 2},
+        {"foo": "wtf", "bar": 4},
+        {"foo": {"baz": "b"}, "bar": 3},
+        {"foo": [6], "bar": 8},
+        {"foo": [7], "bar": 8}
+      ]
+    },
+    {
+      "name": "table5",
+      "values": {
+          "values1": [1,2,3]
+        }
     }
   ],
 

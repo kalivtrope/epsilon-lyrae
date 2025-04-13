@@ -5,6 +5,10 @@ import { toArray } from './jsTypes';
 import { getDatasetShape } from './shape-inference/main';
 import { Scope } from 'scope';
 import { TransformParser } from './transforms/transform';
+import { ExpressionContext, inferOutputShape } from './expressions/main';
+
+
+
 
 /*
 export function pathToString(path: Path): string {
@@ -30,10 +34,17 @@ const parsedSpec = JSON.parse(rawSpec)
 const outDatasets: Dict = {}
 const scope: Scope = {
   parent: undefined,
-  datasets: {}
+  datasets: {},
+  signals: []
 }
 
 async function main(){
+  for(const _signal of toArray(parsedSpec.signals)){
+    const name = (_signal as {"name": string | undefined}).name
+    if(name){
+      scope.signals.push(name);
+    }
+  }
   for(const _dataset of toArray(parsedSpec.data)){
     const dataset = _dataset as Record<string, unknown>
     const datasetName = dataset.name as string
@@ -43,6 +54,12 @@ async function main(){
     if(isFailure(shape))
       return failure
     scope.datasets[datasetName] = shape
+    if(datasetName == "layer_indices"){
+      //const expr = parseExpression("datum.data * height");
+      const expr = parseExpression("{\"key\": datum.data + 9}");
+      const inferredShape = inferOutputShape(expr, new ExpressionContext("layer_indices", scope))
+      console.log(inferredShape)
+    }
     if(dataset.transform){
       const transforms = toArray(dataset.transform)
       const transformParser = new TransformParser()
@@ -58,11 +75,11 @@ async function main(){
           continue
         scope.datasets[datasetName] = out
         console.log("transformed", out)
-        // console.log("got transform:", transform)
       }
     }
     console.log("dataset `" + datasetName + "` has shape", scope.datasets[datasetName])
   }
+  
 }
 
 main()

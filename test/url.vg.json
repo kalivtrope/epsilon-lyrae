@@ -4,22 +4,6 @@
   "width": 800,
   "height": 500,
   "padding": 5,
-
-  "signals": [
-    {
-      "name": "sex", "value": "all",
-      "bind": {"input": "radio", "options": ["men", "women", "all"]}
-    },
-    {
-      "name": "query", "value": "",
-      "on": [
-        {"events": "area:click!", "update": "datum.job"},
-        {"events": "dblclick!", "update": "''"}
-      ],
-      "bind": {"input": "text", "placeholder": "search", "autocomplete": "off"}
-    }
-  ],
-
   "data": [
     {
       "name": "jobs",

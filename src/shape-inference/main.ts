@@ -1,5 +1,5 @@
 import {Dict, failure, Intersection, isFailure, Result} from '../commonTypes'
-import { Context, Shape, SimplifiedType, getSimplifiedTypeForList } from './types'
+import { Context, Shape, SimplifiedType, getSimplifiedTypeForList, stringPrimitive } from './types'
 import * as ErrorLogger from '../logging/errorLogger'
 
 function getKeyIntersection(dataset: Dict[], ctx: Context): Result<Intersection> {
@@ -81,7 +81,7 @@ function handleObjectValues(dataset: Dict[], ctx: Context): Result<Record<string
 export function getDatasetShape(dataset: unknown, ctx: Context): Result<Shape> {
     const valTypes = getSimplifiedTypeForList(dataset as Dict)
     if(valTypes.length == 0){
-      return {}
+      return stringPrimitive;
     }
     if(valTypes.length > 1){
       ErrorLogger.logError(
@@ -101,11 +101,11 @@ export function getDatasetShape(dataset: unknown, ctx: Context): Result<Shape> {
     }
     const valType = valTypes[0]
     switch(valType){
-      case SimplifiedType.Primitive:
-        return {}
-      case SimplifiedType.Array:
+      case "array":
         return handleArrayValues(dataset as unknown[][], ctx)
-      case SimplifiedType.Object:
+      case "object":
         return handleObjectValues(dataset as Dict[], ctx)
-    }
+      default:
+        return valType;
+      }
   }

@@ -38,7 +38,7 @@ export class FormulaTransform {
         }
         catch(e){
             ErrorLogger.logError({
-                location: ["TODO"],
+                location: ["TODO"], // TODO: scope, dataset "" definition, n-th transformation
                 error: {
                     type: "invalidField",
                     reason: e as string,

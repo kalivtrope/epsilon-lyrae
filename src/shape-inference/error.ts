@@ -1,9 +1,9 @@
-import {Context} from './types'
+import {Context, SimplifiedType} from './types'
  
 interface MismatchedDatumError {
     type: "mismatchedDatum"
     context: Context,
-    possibleTypes: string[]
+    possibleTypes: SimplifiedType[]
   }  
 
 interface IncompleteFieldError {
