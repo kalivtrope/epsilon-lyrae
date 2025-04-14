@@ -1,8 +1,9 @@
 import {Dict, failure, Intersection, isFailure, Result} from '../commonTypes'
 import { Context, Shape, SimplifiedType, getSimplifiedTypeForList, stringPrimitive } from './types'
 import * as ErrorLogger from '../logging/errorLogger'
+import { Runtime } from '../index'
 
-function getKeyIntersection(dataset: Dict[], ctx: Context): Result<Intersection> {
+function getKeyIntersection(runtime: Runtime, dataset: Dict[], ctx: Context): Result<Intersection> {
   if(dataset.length == 0){
     return {keys: []}
   }
@@ -29,7 +30,7 @@ function getKeyIntersection(dataset: Dict[], ctx: Context): Result<Intersection>
   if(incompleteKeys.size > 0){
     ErrorLogger.logError(
       {
-        location: ["TODO"],
+        location: runtime.prefix,
         error: {
           type: "incompleteField",
           context: {
@@ -47,14 +48,14 @@ function getKeyIntersection(dataset: Dict[], ctx: Context): Result<Intersection>
 }
 
 
-function handleObjectValues(dataset: Dict[], ctx: Context): Result<Record<string, Shape>> {
-    const keys = getKeyIntersection(dataset, ctx)
+function handleObjectValues(runtime: Runtime, dataset: Dict[], ctx: Context): Result<Record<string, Shape>> {
+    const keys = getKeyIntersection(runtime, dataset, ctx)
     if(isFailure(keys))
       return failure
     const result: Shape = {}
     for(const key of keys.keys){
       ctx.indices.push(key)
-      const out = getDatasetShape(dataset.map((o: Record<string, unknown>) => o[key]), ctx)
+      const out = inferDatasetShape(runtime, dataset.map((o: Record<string, unknown>) => o[key]), ctx)
       ctx.indices.pop()
       if(isFailure(out))
         return failure
@@ -63,12 +64,12 @@ function handleObjectValues(dataset: Dict[], ctx: Context): Result<Record<string
     return result
   }
   
-  function handleArrayValues(dataset: unknown[][], ctx: Context): Result<Shape[]> {
+  function handleArrayValues(runtime: Runtime, dataset: unknown[][], ctx: Context): Result<Shape[]> {
     const maxLen = Math.min(...dataset.flatMap(o => o.length))
     const result: Shape = []
     for(let i = 0; i < maxLen; i++){
       ctx.indices.push(i)
-      const out = getDatasetShape(dataset.map(o => o[i]), ctx)
+      const out = inferDatasetShape(runtime, dataset.map(o => o[i]), ctx)
       ctx.indices.pop()
       if(isFailure(out))
         return failure
@@ -78,7 +79,7 @@ function handleObjectValues(dataset: Dict[], ctx: Context): Result<Record<string
   }
 
   
-export function getDatasetShape(dataset: unknown, ctx: Context): Result<Shape> {
+export function inferDatasetShape(runtime: Runtime, dataset: unknown, ctx: Context): Result<Shape> {
     const valTypes = getSimplifiedTypeForList(dataset as Dict)
     if(valTypes.length == 0){
       return stringPrimitive;
@@ -86,7 +87,7 @@ export function getDatasetShape(dataset: unknown, ctx: Context): Result<Shape> {
     if(valTypes.length > 1){
       ErrorLogger.logError(
         {
-          location: ["TODO"],
+          location: runtime.prefix,
           error: {
             type: "mismatchedDatum",
             possibleTypes: valTypes,
@@ -102,9 +103,9 @@ export function getDatasetShape(dataset: unknown, ctx: Context): Result<Shape> {
     const valType = valTypes[0]
     switch(valType){
       case "array":
-        return handleArrayValues(dataset as unknown[][], ctx)
+        return handleArrayValues(runtime, dataset as unknown[][], ctx)
       case "object":
-        return handleObjectValues(dataset as Dict[], ctx)
+        return handleObjectValues(runtime, dataset as Dict[], ctx)
       default:
         return valType;
       }

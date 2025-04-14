@@ -5,12 +5,15 @@ import { Scope } from "../scope";
 import { Primitive, Shape, isPrimitive, numberPrimitive, isNumberPrimitive, isStringPrimitive, stringPrimitive, booleanPrimitive, combinePrimitives } from "../shape-inference/types";
 import * as ErrorLogger from '../logging/errorLogger'
 import {generate} from "astring"
+import { lookupDataset } from "lookup/main";
+import { Runtime } from "../index";
 
 export class ExpressionContext {
-    constants = ["E", "PI"]
-    boolean_unary_functions = ["isBoolean", "isNumber", "isObject", "isString"]
-    number_binary_functions = ["min", "max", "exp"]
-    fieldvar = "datum"
+
+    static constants = ["E", "PI"]
+    static boolean_unary_functions = ["isBoolean", "isNumber", "isObject", "isString"]
+    static number_binary_functions = ["min", "max", "exp"]
+    static fieldvar = "datum"
     depth = 0
     prefix: Path = []
     datasetName: string
@@ -24,23 +27,20 @@ export class ExpressionContext {
     getDepth(){
         return this.depth;
     }
-    isConstant(id: string){
-        return this.constants.includes(id)
+    static isConstant(name: string) {
+        return ExpressionContext.constants.includes(name)
     }
-    isSignal(id: string){
-        return this.scope.signals.includes(id)
+    static isUnaryFunction(id: string){
+        return ExpressionContext.boolean_unary_functions.includes(id)
     }
-    isUnaryFunction(id: string){
-        return this.boolean_unary_functions.includes(id)
+    static isBinaryFunction(id: string){
+        return ExpressionContext.number_binary_functions.includes(id)
     }
-    isBinaryFunction(id: string){
-        return this.number_binary_functions.includes(id)
-    }
-    getOutputShape(id: string): Primitive {
-        if(this.isUnaryFunction(id)){
+    static getOutputShape(id: string): Primitive {
+        if(ExpressionContext.isUnaryFunction(id)){
             return booleanPrimitive;
         }
-        else if(this.isBinaryFunction(id)){
+        else if(ExpressionContext.isBinaryFunction(id)){
             return numberPrimitive;
         }
         return stringPrimitive;
@@ -85,14 +85,14 @@ function canIndex(index: unknown): index is string | number {
     return isNumber(index) || isString(index)
 }
 
-function indexShape(shape: Shape, index: string | number, ctx: ExpressionContext, objExpr: Expression, indexExpr: Expression): Result<Shape> {
+function indexShape(runtime: Runtime, shape: Shape, index: string | number,  objExpr: Expression, indexExpr: Expression): Result<Shape> {
     if(isArray(shape)){
         if(!isNumber(index)){
             ErrorLogger.logError({
-                location: ["TODO"], // TODO: scope, dataset "" definition, n-th transformation
+                location: runtime.prefix, // TODO: scope, dataset "" definition, n-th transformation
                 error: {
                     type: "stringIndexedArray",
-                    datasetName: ctx.datasetName,
+                    datasetName: "TBD",
                     array: generate(objExpr),
                     index: index
                 }
@@ -101,11 +101,11 @@ function indexShape(shape: Shape, index: string | number, ctx: ExpressionContext
         }
         if(!(0 <= index && index < shape.length)){
             ErrorLogger.logError({
-                location: ["TODO"],
+                location: runtime.prefix,
                 error: {
                     type: "outOfBounds",
                     index: index,
-                    datasetName: ctx.datasetName,
+                    datasetName: "TBD",
                     array: generate(objExpr),
                     length: shape.length
                 }
@@ -116,11 +116,11 @@ function indexShape(shape: Shape, index: string | number, ctx: ExpressionContext
     }
     if(isPrimitive(shape)){
         ErrorLogger.logError({
-            location: ["TODO"],
+            location: runtime.prefix,
             error: {
                 type: "primitiveIndexError",
                 index: index,
-                datasetName: ctx.datasetName,
+                datasetName: "TBD",
                 primitive: generate(objExpr)
             }
         })
@@ -129,10 +129,10 @@ function indexShape(shape: Shape, index: string | number, ctx: ExpressionContext
     const out = shape[index.toString()]
     if(!out){
         ErrorLogger.logError({
-            location: ["TODO"],
+            location: runtime.prefix,
             error: {
                 type: "nonexistentField",
-                datasetName: ctx.datasetName,
+                datasetName: "TBD",
                 object: generate(objExpr),
                 prefix: [],
                 field: index.toString(),
@@ -176,24 +176,24 @@ function shapeIntersection(lhs: Shape, rhs: Shape): Shape {
     return outShape;
 }
 
-export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Result<Shape>{
-    console.log("got expr type", expr.type)
+export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape: Shape): Result<Shape>{
+    //console.log("got expr type", expr.type)
     switch(expr.type){
         case "MemberExpression":
             const object = expr.object;
             if(objectIsExpression(object)){
-                const object_shape = inferOutputShape(object, ctx)
+                const object_shape = inferOutputShape(runtime, object, inputShape)
                 if(isFailure(object_shape))
                     return failure
                 const property = expr.property;
                 if(propertyIsIdentifier(property)){
-                   return indexShape(object_shape, property.name, ctx, object, property)
+                   return indexShape(runtime, object_shape, property.name, object, property)
                 }
                 else if(propertyIsLiteral(property) && canIndex(property.value)){
-                    return indexShape(object_shape, property.value, ctx, object, property)
+                    return indexShape(runtime, object_shape, property.value, object, property)
                 }
                 ErrorLogger.logError({
-                    location: ["TODO"],
+                    location: runtime.prefix,
                     error: {
                         type: 'unsupportedIndex',
                         index: generate(property)
@@ -202,7 +202,7 @@ export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Resu
             }
             else {
                 ErrorLogger.logError({
-                    location: ["TODO"],
+                    location: runtime.prefix,
                     error: {
                         type: 'unsupportedObject',
                         index: generate(object)
@@ -214,7 +214,7 @@ export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Resu
             const arrRes: Shape = []
             for(const [i, elem] of expr.elements.entries()){
                 if(elementIsExpression(elem)){
-                    const out = inferOutputShape(elem, ctx);
+                    const out = inferOutputShape(runtime, elem, inputShape);
                     if(isFailure(out)){
                         return failure;
                     }
@@ -224,22 +224,10 @@ export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Resu
             return arrRes;
         case "Identifier":
             const name = expr.name;
-            if(name == ctx.fieldvar){
-                const shape = ctx.scope.datasets[ctx.datasetName] // TODO: proper lookup
-                if(!shape){
-                    ErrorLogger.logError({
-                        location: ["TODO"],
-                        error: {
-                            type: "nonexistentDataset",
-                            datasetName: ctx.datasetName,
-                            availableTables: Object.keys(ctx.scope.datasets)
-                        }
-                    }) 
-                    return failure;
-                }
-                return shape;
+            if(name == ExpressionContext.fieldvar){
+                return inputShape;
             }
-            if(ctx.isConstant(name) || ctx.isSignal(name)){
+            if(ExpressionContext.isConstant(name) || runtime.scope.signals.includes(name)){
                 return numberPrimitive;
             }
             return failure; // vega already reports an unknown identifier error in this case
@@ -252,14 +240,14 @@ export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Resu
             }
         case "CallExpression":
             const callee = expr.callee
-            const args = expr.arguments.map(arg => inferOutputShape(arg as Expression, ctx))
+            const args = expr.arguments.map(arg => inferOutputShape(runtime, arg as Expression, inputShape))
             if(args.some(arg => isFailure(arg))){
                 return failure;
             }
             if(calleeIsIdentifier(callee)){
-                if((expr.arguments.length == 1 && ctx.isUnaryFunction(callee.name))
-                || (expr.arguments.length == 2 && ctx.isBinaryFunction(callee.name))) {
-                    return ctx.getOutputShape(callee.name)
+                if((expr.arguments.length == 1 && ExpressionContext.isUnaryFunction(callee.name))
+                || (expr.arguments.length == 2 && ExpressionContext.isBinaryFunction(callee.name))) {
+                    return ExpressionContext.getOutputShape(callee.name)
                 }
                 else{
                     ErrorLogger.logError(
@@ -288,8 +276,8 @@ export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Resu
             return failure;
         case "BinaryExpression":
             const op = expr.operator;
-            const lhs = inferOutputShape(expr.left, ctx);
-            const rhs = inferOutputShape(expr.right, ctx);
+            const lhs = inferOutputShape(runtime, expr.left, inputShape);
+            const rhs = inferOutputShape(runtime, expr.right, inputShape);
             if(isFailure(lhs) || isFailure(rhs)){
                 return failure;
             }
@@ -371,14 +359,14 @@ export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Resu
                 */
             }
         case "ConditionalExpression":
-            const consequent = inferOutputShape(expr.consequent, ctx)
-            const alternate = inferOutputShape(expr.alternate, ctx)
+            const consequent = inferOutputShape(runtime, expr.consequent, inputShape)
+            const alternate = inferOutputShape(runtime, expr.alternate, inputShape)
             if(isFailure(consequent) || isFailure(alternate))
                 return failure;
             return shapeIntersection(consequent, alternate);
         case "LogicalExpression":
-            const _lhs = inferOutputShape(expr.left, ctx)
-            const _rhs = inferOutputShape(expr.right, ctx)
+            const _lhs = inferOutputShape(runtime, expr.left, inputShape)
+            const _rhs = inferOutputShape(runtime, expr.right, inputShape)
             if(isFailure(_lhs) || isFailure(_rhs))
                 return failure;
             return shapeIntersection(_lhs, _rhs)
@@ -408,7 +396,7 @@ export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Resu
                         return failure;
                     }
                     const value = property.value
-                    const resVal = inferOutputShape(value as Expression, ctx)
+                    const resVal = inferOutputShape(runtime, value as Expression, inputShape)
                     if(isFailure(resVal)){
                         return resVal;
                     }
@@ -446,5 +434,8 @@ export function inferOutputShape(expr: Expression, ctx: ExpressionContext): Resu
         case "YieldExpression":*/
     }
 }
+
+//console.log("Hello!")
+//console.dir(parseExpression("datum.x.y.z[3]['hello']"), { depth: null})
 
 

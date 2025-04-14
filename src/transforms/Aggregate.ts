@@ -1,25 +1,26 @@
 import { toResult, failure, Field, isFailure, Result, getOutputField, isResultArray, } from "../commonTypes"
-import { Shape } from "../shape-inference/types"
+import { numberPrimitive, Shape } from "../shape-inference/types"
 import { toPath, toShapeResultArray, Transform } from "./transform"
 import { zip } from "../jsTypes"
 import { checkFieldArrayFormat, checkFieldFormat, checkStringArrayFormat } from "./formatChecking"
-import { shapeAt } from "../lookup/main"
+import { getEntryAtPath, shapeAt } from "../lookup/main"
 import { Scope } from "../scope"
+import { Runtime } from "../index"
 
 
 export class AggregateTransform {
   public type = 'aggregate'
-  transform(datasetName: string, scope: Scope): Result<Shape> {
-    const groupbyShapes = toShapeResultArray(this.groupby, datasetName, scope)
+  transform(runtime: Runtime, inputShape: Shape): Result<Shape> {
+    const groupbyShapes = toShapeResultArray(runtime, this.groupby, inputShape)
     if(!isResultArray(groupbyShapes)){
       return failure
     }
-    const fieldsShapes  = this.fields.length === 0 ? [[]] : toShapeResultArray(this.fields, datasetName, scope)
+    const fieldsShapes  = this.fields.length === 0 ? [[]] : toShapeResultArray(runtime, this.fields, inputShape)
     if(!isResultArray(fieldsShapes)){
       return failure
     }
     if(this.key != undefined){
-      const res = shapeAt(datasetName, toPath(this.key), scope)
+      const res = getEntryAtPath(inputShape, toPath(this.key))
       if(isFailure(res)){
         return failure
       }
@@ -38,7 +39,7 @@ export class AggregateTransform {
       }
     }
     const out = zip(this.groupby.map(getOutputField), groupbyShapes).concat(
-      zip(this.as, Array(this.as.length).fill({}))
+      zip(this.as, Array(this.as.length).fill(numberPrimitive))
     )
     
     // https://stackoverflow.com/questions/32002176/how-to-convert-an-array-of-key-value-tuples-into-an-object

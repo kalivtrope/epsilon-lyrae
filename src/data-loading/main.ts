@@ -4,6 +4,8 @@ import { Dict, failure, Result } from '../commonTypes';
 import { Format } from 'vega';
 import * as WarningLogger from '../logging/warningLogger'
 import * as ErrorLogger from '../logging/errorLogger'
+import { Runtime } from 'index';
+import { Scope } from '../scope';
 
 function isSignal(x: unknown): boolean {
   return !!x && !!(isObject(x) && x.signal);
@@ -32,60 +34,79 @@ const signalWarning: UnsupportedFeatureWarning = {
   type: "unsupportedFeature",
   message: "Signals aren't supported."
 }
-export async function loadDataset(dataset: Record<string, unknown>, outDatasets: Dict): Promise<Result<true>> {
-    const loader = vega.loader()
-    const name: string = dataset.name as string
-    let outData: unknown
-    if(dataset.values){
-      if(isSignal(dataset.values) || hasSignal(dataset.format)){
-        WarningLogger.logWarning({
-          location: ["TODO"],
-          warning: signalWarning
-        })
-        return failure
-      }
-      else {
-        outData = vega.read(dataset.values as string, dataset.format as Format)
-      }
+
+function lookupDatasetData(scope: Scope | undefined, datasetName: string): unknown[] | undefined {
+  while(scope != undefined){
+    if(scope.datasetData[datasetName] != undefined){
+      return scope.datasetData[datasetName]
     }
-  
-    else if(dataset.url){
-      if(hasSignal(dataset.url) || hasSignal(dataset.format)){
-        WarningLogger.logWarning({
-          location: ["TODO"],
-          warning: signalWarning
-        })
-        return failure
-      }
-      else{
-        await loader.load(dataset.url as string).then((ds) => {
-          outData = vega.read(ds, dataset.format as Format);
-        });
-      }
-    }
-    else if(dataset.source){
-      const sources = toArray(dataset.source);
-      outData = sources.flatMap((source) => {
-        if(!outDatasets[source as string]){
-          ErrorLogger.logError({
-            location: ["TODO"],
-            error:{
-              type: 'nonexistentDataset',
-              datasetName: source as string,
-              availableTables: Object.keys(outDatasets)
-            }
-          })
-        }
-        return outDatasets[source as string]
-      })
-    }
-  
-    outData = toArray(outData).map((val: unknown) => {
-      if (!isObject(val)) {
-        return { "data": val };
-      }
-      return val;
-    })
-    outDatasets[name] = outData
-    return true
+    scope = scope.parent
   }
+  return undefined;
+}
+
+export async function loadDatasetData(runtime: Runtime, dataset: Record<string, unknown>): Promise<Result<unknown[]>>{
+  const loader = vega.loader()
+  const name: string = dataset.name as string
+  let outData: unknown[] = []
+  if(dataset.values){
+    if(isSignal(dataset.values) || hasSignal(dataset.format)){
+      WarningLogger.logWarning({
+        location: runtime.prefix,
+        warning: signalWarning
+      })
+      return failure
+    }
+    else {
+      outData = vega.read(dataset.values as string, dataset.format as Format)
+    }
+  }
+  else if(dataset.url){
+    if(hasSignal(dataset.url) || hasSignal(dataset.format)){
+      WarningLogger.logWarning({
+        location: runtime.prefix,
+        warning: signalWarning
+      })
+      return failure
+    }
+    else{
+      await loader.load(dataset.url as string).then((ds) => {
+        outData = vega.read(ds, dataset.format as Format);
+      });
+    }
+  }
+  else if(dataset.source){
+    const sources = toArray(dataset.source);
+    outData = sources.flatMap((source) => {
+      const data = lookupDatasetData(runtime.scope, source as string)
+      if(!data){
+        ErrorLogger.logError({
+          location: runtime.prefix,
+          error:{
+            type: 'nonexistentDataset',
+            datasetName: source as string,
+            availableTables: listDatasetNames(runtime.scope)
+          }
+        })
+      }
+      return data
+    })
+  }
+  else {
+    return failure;
+  }
+
+  outData = toArray(outData).map((val: unknown) => {
+    if (!isObject(val)) {
+      return { "data": val };
+    }
+    return val;
+  })
+  return outData;
+}
+
+function listDatasetNames(scope: Scope | undefined): string[] {
+  if(scope == undefined)
+    return []
+  return listDatasetNames(scope.parent).concat(Object.keys(scope.datasets))
+}

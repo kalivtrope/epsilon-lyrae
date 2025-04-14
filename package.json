@@ -8,6 +8,7 @@
   "devDependencies": {
     "@eslint/js": "^9.9.1",
     "@types/eslint__js": "^8.42.3",
+    "@types/jsonpath": "^0.2.4",
     "@types/node": "~22.5.0",
     "eslint": "^9.9.1",
     "typescript": "^5.5.4",
@@ -15,6 +16,9 @@
   },
   "dependencies": {
     "astring": "^1.9.0",
+    "jsonpath": "^1.1.1",
+    "node": "~22.5.0",
+    "node-fetch": "2.6.6",
     "nodemon": "^3.1.4",
     "rimraf": "^6.0.1",
     "vega": "^5.30.0"

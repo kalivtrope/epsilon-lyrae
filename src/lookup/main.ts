@@ -33,11 +33,20 @@ export function lookupDataset(datasetName: string, scope: Scope | undefined): Re
     return failure
   }
   
-  export function getEntry(dataset: Shape, field: Key): Shape | undefined {
-    if(isArray(dataset) && typeof field === 'number')
-      return dataset[field]
-    if(isObject(dataset))
-      return dataset[field]
+  export function getEntry(shape: Shape, field: Key): Shape | undefined {
+    if(isArray(shape) && typeof field === 'number')
+      return shape[field]
+    if(isObject(shape))
+      return shape[field]
+}
+
+export function getEntryAtPath(shape: Shape | undefined, path: Path): Shape | undefined {
+  for(const p of path){
+    if(!shape)
+      return undefined;
+    shape = getEntry(shape, p)
+  }
+  return shape;
 }
   
 function lookupFieldPath(dataset: Shape, datasetName: string, path: Path): Result<Shape> {

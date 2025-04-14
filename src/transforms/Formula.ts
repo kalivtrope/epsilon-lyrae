@@ -7,6 +7,8 @@ import * as ErrorLogger from '../logging/errorLogger'
 import { lookupDataset } from "../lookup/main";
 import { Transform } from "./transform";
 import { checkStringFormat } from "./formatChecking";
+import { Runtime } from "../index";
+import { inferOutputShape } from "../expressions/main";
 
 export class FormulaTransform {
     public type = 'formula'
@@ -15,13 +17,11 @@ export class FormulaTransform {
         private as: string
     ) {
       }
-    transform(datasetName: string, scope: Scope): Result<Shape> {
-        const shape = lookupDataset(datasetName, scope)
-        // TODO: check expr
-        if(isFailure(shape))
+    transform(runtime: Runtime, inputShape: Shape): Result<Shape> {
+        const outputShape = inferOutputShape(runtime, this.expr, inputShape)
+        if(isFailure(outputShape))
             return failure
-        // TODO: infer shape of expr
-        return Object.assign({}, shape, {[this.as]: {}})
+        return Object.assign({}, inputShape, {[this.as]: outputShape})
     }
     static fromSpec(spec: {'type': string}): Result<Transform> {
         const filterSpec = spec as {

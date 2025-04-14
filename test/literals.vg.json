@@ -31,7 +31,7 @@
       "values": [0, 1, 2, 3],
       "transform": [
         {"type": "filter", "expr": "datum.data < layers"},
-        {"type": "formula", "expr": "datum.data * -height", "as": "offset"}
+        {"type": "formula", "expr": "datum.data * height", "as": "offset"}
       ]
     },
     {
