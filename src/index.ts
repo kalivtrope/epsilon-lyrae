@@ -85,7 +85,7 @@ async function addDatasets(runtime: Runtime) {
   for(const [index, _dataset] of toArray(parsedSpec.data).entries()){
     runtime.prefix.push(index.toString())
     const dataset = _dataset as Record<string, unknown>
-    //console.log(`processing dataset \`${dataset.name}\``)
+    console.log(`processing dataset \`${dataset.name}\``)
     if(isFailure(await processDataset(runtime, dataset))){
       //console.log("exiting...")
       return failure;
@@ -118,6 +118,7 @@ async function processDataset(runtime: Runtime, dataset: Record<string, unknown>
     //console.log("no data!")
     return failure
   }
+  runtime.scope.datasetData[datasetName] = datasetData;
   const initialShape = inferDatasetShape(runtime, datasetData, {datasetName: datasetName, indices: []})
   if(isFailure(initialShape)){
     //console.log("no initial shape!")
@@ -142,7 +143,7 @@ function processDatasetTransforms(runtime: Runtime, initialShape: Shape, transfo
     const newShape = processDatasetTransform(runtime, currShape, transform)
     if(isFailure(newShape))
       return failure;
-    console.log("new shape:", newShape)
+    console.log("new shape after", (transform as any).type + ": ", newShape)
     currShape = newShape;
     runtime.prefix.pop()
   }

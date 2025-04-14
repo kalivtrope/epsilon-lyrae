@@ -88,6 +88,7 @@ export async function loadDatasetData(runtime: Runtime, dataset: Record<string, 
             availableTables: listDatasetNames(runtime.scope)
           }
         })
+        return failure;
       }
       return data
     })
