@@ -2,6 +2,11 @@ import { failure, Field, Path, Result, Runtime } from "../types/commonTypes"
 import * as ErrorLogger from "../logging/errorLogger"
 import * as vega from 'vega'
 
+/* Parse a field string. Note that this might result in a Path.
+ *
+ * According to Vega, a field can be either specified as a string
+ * or an object with a field property.
+ */
 export function parseField(runtime: Runtime, field: Field): Result<Path> {
     const parse = (f: string): Result<Path> => {
       try {

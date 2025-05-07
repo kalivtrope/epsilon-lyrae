@@ -5,6 +5,11 @@ import { Primitive, Shape, isPrimitive, numberPrimitive, isNumberPrimitive, isSt
 import * as ErrorLogger from '../logging/errorLogger'
 import {generate} from "astring"
 
+/* Main logic for deriving shapes of Vega expressions.
+ * Note that Vega also provides custom constants (usually numeric),
+ * hence the expression context.
+ */
+
 export class ExpressionContext {
     static constants = ["E", "PI"]
     static boolean_unary_functions = ["isBoolean", "isNumber", "isObject", "isString"]
@@ -36,6 +41,7 @@ export class ExpressionContext {
     }
 }
 
+/* Helper type discriminator functions for making use of the TypeScript type system */
 function objectIsExpression(obj: Expression | Super): obj is Expression {
     return obj.type != "Super";
 }
@@ -66,6 +72,11 @@ function canIndex(index: unknown): index is string | number {
     return isNumber(index) || isString(index)
 }
 
+/* Handles indexing logic on shapes in expressions.
+ * Indexes the shape `shape` with a single index `index`.
+ * Throws an appropriate error if the indexing is illegal
+ * in some way.
+*/
 function indexShape(runtime: Runtime, shape: Shape, index: string | number,  objExpr: Expression, indexExpr: Expression): Result<Shape> {
     if(isArray(shape)){
         if(!isNumber(index)){
@@ -156,6 +167,9 @@ function shapeIntersection(lhs: Shape, rhs: Shape): Shape {
     return outShape;
 }
 
+/* An expression AST visitor.
+ * For more information on the possible AST nodes and their meaning, see the ESTree docs.
+ */
 export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape: Shape): Result<Shape>{
     switch(expr.type){
         case "MemberExpression":

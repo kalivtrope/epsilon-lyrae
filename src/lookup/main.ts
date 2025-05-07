@@ -3,6 +3,8 @@ import { Shape } from "../shape-inference/types";
 import * as ErrorLogger from '../logging/errorLogger'
 import { isArray, isObject } from "../types/jsTypes";
 
+/* Main logic for querying the shape of datasets and for accessing shapes at paths */
+
 function getAvailableDatasets(scope: Scope | undefined): string[]{
     const res = new Set<string>()
     while(scope != undefined){

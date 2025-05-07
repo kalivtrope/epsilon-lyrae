@@ -19,7 +19,6 @@ export function toShapeResultArray(runtime: Runtime, vals: Field[], inputShape: 
     return toPathArray(runtime, vals).map(path => {
       const out = getEntryAtPath(inputShape, path);
       if(!out){
-        // console.log("getEntryAtPath", inputShape, path);
         ErrorLogger.logError({
           location: runtime.prefix,
           error: {

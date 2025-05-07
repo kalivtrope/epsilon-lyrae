@@ -2,9 +2,8 @@ import { isArray, isObject } from '../types/jsTypes'
 import {Dict, Path} from '../types/commonTypes'
 import { isBoolean, isNumber, isString } from 'vega'
 
-//export const booleanPrimitive: unique symbol = Symbol("boolean") 
-//export const numberPrimitive: unique symbol = Symbol("number")
-//export const stringPrimitive: unique symbol = Symbol("string")
+/* Main logic for shape inference and shape intersection. */
+
 
 export const objectType = "object"
 export const arrayType = "array"

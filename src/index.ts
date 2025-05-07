@@ -8,7 +8,6 @@ import { Shape } from './shape-inference/types';
 import { parseField } from './field-parsing/main';
 import { shapeAt } from './lookup/main';
 
-
 async function main(){
   const scope: Scope = {
     parent: undefined,

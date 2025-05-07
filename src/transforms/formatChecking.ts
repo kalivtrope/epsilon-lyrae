@@ -2,6 +2,10 @@ import { Field, getInputField, isFailure, isField, isFieldArray, isStringArray, 
 import * as ErrorLogger from "../logging/errorLogger"
 import { parseField } from "../field-parsing/main"
 
+/* Helper functions for checking the expected input format of transformations.
+ * This corresponds to Vega's definitions of Strings,String arrays, Fields and Field arrays.
+*/
+
 export function checkStringFormat(runtime: Runtime, val: unknown, name: string, required = false): val is string {
   if((required && val != undefined) && typeof val !== 'string'){
     ErrorLogger.logError(

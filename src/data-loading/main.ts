@@ -6,12 +6,16 @@ import * as WarningLogger from '../logging/warningLogger'
 import * as ErrorLogger from '../logging/errorLogger'
 import { UnsupportedFeatureWarning } from '../warnings/warnings';
 
+/* Main logic for correctly loading data from Vega specifications.
+   Mostly reverse-engineered from observed behavior and Vega implementation.
+*/
 
 const signalWarning: UnsupportedFeatureWarning = {
   type: "unsupportedFeature",
   message: "Signals aren't supported."
 }
 
+/* Slightly obscure way to check that an object has a signal property.*/
 function isSignal(x: unknown): boolean {
   return !!x && !!(isObject(x) && x.signal);
 }
@@ -40,7 +44,13 @@ function lookupDatasetData(scope: Scope | undefined, datasetName: string): unkno
   return undefined;
 }
 
-/*
+/* Implement dataset loading in accordance to Vega's logic.
+  A dataset source has one of the following three (disjunct) representations:
+  1) `values`: data objects embedded inside a specification. Might be subject to additional formatting rules,
+               hence the access to dataset.format.
+  2) `url`: data is stored in a url, be it a path on a local filesystem or an http url
+  3) `source: data is read from an already defined dataset
+
 */
 export async function loadDatasetData(runtime: Runtime, dataset: Record<string, unknown>): Promise<Result<unknown[]>>{
   const loader = vega.loader()
@@ -106,6 +116,9 @@ export async function loadDatasetData(runtime: Runtime, dataset: Record<string, 
   }
 
   outData = toArray(outData).map((val: unknown) => {
+    /* Implementation detail: if the data tuple `val` isn't an object,
+     * wrap it inside of {"data": val}
+     */
     if (!isObject(val)) {
       return { "data": val };
     }
@@ -114,6 +127,9 @@ export async function loadDatasetData(runtime: Runtime, dataset: Record<string, 
   return outData;
 }
 
+/* Recursively list dataset names in current scope to provide context
+ * in case of error.
+ */
 function listDatasetNames(scope: Scope | undefined): string[] {
   if(scope == undefined)
     return []
