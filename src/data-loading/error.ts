@@ -1,4 +1,4 @@
-export type ParseError = UnsupportedFormatError | InvalidFieldError
+export type ParseError = UnsupportedFormatError | InvalidFieldError | UrlLoadingError
 
 export interface InvalidFieldError {
   type: "invalidField",
@@ -10,4 +10,9 @@ export interface UnsupportedFormatError {
   field: string,
   actualValue: unknown
   supportedValues: unknown
+}
+
+export interface UrlLoadingError {
+  type: "urlLoadingError",
+  url: string
 }

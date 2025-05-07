@@ -1,4 +1,5 @@
 import { isArray, isObject } from "./jsTypes";
+import { Shape } from "../shape-inference/types";
 
 export type Dict = Record<Key, unknown>;
 
@@ -59,3 +60,35 @@ export function toResult<T>(val: Result<T>): T {
 }
 
 export type Result<T> = T | typeof failure
+
+export type ScaleType = {
+    domain?: {
+        data?: string,
+        field?: unknown,
+        fields?: unknown[],
+        sort?: {
+            field?: unknown
+        }
+    }
+  }
+
+export type Spec = {
+  signals?: object,
+  data?: object,
+  scales?: ScaleType[],
+  marks?: object
+}
+
+export interface Scope {
+    parent: Scope | undefined,
+    datasets: Record<string, Shape>,
+    datasetData: Record<string, unknown[]>
+    signals: string[]
+  }
+
+export interface Runtime {
+  prefix: (string | number)[],
+  spec: Spec,
+  scope: Scope,
+  currDatasetName?: string | undefined
+}

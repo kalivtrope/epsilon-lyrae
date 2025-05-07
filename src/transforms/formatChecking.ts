@@ -1,13 +1,12 @@
-import { Field, getInputField, isFailure, isField, isFieldArray, isStringArray } from "../commonTypes"
+import { Field, getInputField, isFailure, isField, isFieldArray, isStringArray, Runtime } from "../types/commonTypes"
 import * as ErrorLogger from "../logging/errorLogger"
-import { parseField } from "../fieldParsing"
+import { parseField } from "../field-parsing/main"
 
-
-export function checkStringFormat(val: unknown, name: string, required = false): val is string {
+export function checkStringFormat(runtime: Runtime, val: unknown, name: string, required = false): val is string {
   if((required && val != undefined) && typeof val !== 'string'){
     ErrorLogger.logError(
       {
-        location: ["TODO"],
+        location: runtime.prefix,
         error: {
           type: "unsupportedFormat",
           field: name,
@@ -20,11 +19,11 @@ export function checkStringFormat(val: unknown, name: string, required = false):
   }
   return true
 }
-export function checkStringArrayFormat(val: unknown, name: string, required = false): val is string[] {
+export function checkStringArrayFormat(runtime: Runtime, val: unknown, name: string, required = false): val is string[] {
     if((required && val != undefined) && !isStringArray(val)){
       ErrorLogger.logError(
         {
-          location: ["TODO"],
+          location: runtime.prefix,
           error: {
             type: "unsupportedFormat",
             field: name,
@@ -38,11 +37,11 @@ export function checkStringArrayFormat(val: unknown, name: string, required = fa
     return true
   }
   
-export function checkFieldFormat(val: unknown, name: string, required = false): val is Field {
+export function checkFieldFormat(runtime: Runtime, val: unknown, name: string, required = false): val is Field {
     if((required && val != undefined) && !isField(val)){
       ErrorLogger.logError(
         {
-          location: ["TODO"],
+          location: runtime.prefix,
           error: {
             type: "unsupportedFormat",
             field: name,
@@ -53,16 +52,16 @@ export function checkFieldFormat(val: unknown, name: string, required = false): 
       )
       return false
     }
-    if(required && val != undefined && isFailure(parseField(getInputField(val as Field)))){
+    if(required && val != undefined && isFailure(parseField(runtime, getInputField(val as Field)))){
       return false
     }
     return true
   }
-export function checkFieldArrayFormat(val: unknown, name: string, required = false): val is Field[] {
+export function checkFieldArrayFormat(runtime: Runtime, val: unknown, name: string, required = false): val is Field[] {
     if((required && val != undefined) && !isFieldArray(val)){
       ErrorLogger.logError(
         {
-          location: ["TODO"],
+          location: runtime.prefix,
           error: {
             type: "unsupportedFormat",
             field: name,
@@ -73,7 +72,7 @@ export function checkFieldArrayFormat(val: unknown, name: string, required = fal
       )
       return false
     }
-    if(required && val != undefined && !(val as Field[]).every(v => !isFailure(parseField(getInputField(v))))){
+    if(required && val != undefined && !(val as Field[]).every(v => !isFailure(parseField(runtime, getInputField(v))))){
       return false
     }
     return true

@@ -1,34 +1,31 @@
-import { parseField } from "../fieldParsing";
-import { failure, Field, getInputField, Path, Result, toResult } from "../commonTypes";
+import { parseField } from "../field-parsing/main";
+import { failure, Field, getInputField, Path, Result, Runtime, toResult } from "../types/commonTypes";
 import { getEntryAtPath, shapeAt } from "../lookup/main";
-import { Scope } from "../scope";
 import { Shape } from "../shape-inference/types";
 import * as ErrorLogger from "../logging/errorLogger"
 import { AggregateTransform } from "./Aggregate";
 import { FilterTransform } from "./Filter";
 import { FormulaTransform } from "./Formula";
-import { Runtime } from "../index";
 
 
-export function toPath(val: Field): Path {
-    return toResult(parseField(getInputField(val)))
+export function toPath(runtime: Runtime, val: Field): Path {
+    return toResult(parseField(runtime, getInputField(val)))
   }
-export function toPathArray(vals: Field[]): Path[]{
-    return vals.map(toPath)
+export function toPathArray(runtime: Runtime, vals: Field[]): Path[]{
+    return vals.map(val => toPath(runtime, val))
   }
   
 export function toShapeResultArray(runtime: Runtime, vals: Field[], inputShape: Shape): Result<Shape>[] {
-    return toPathArray(vals).map(path => {
+    return toPathArray(runtime, vals).map(path => {
       const out = getEntryAtPath(inputShape, path);
       if(!out){
+        // console.log("getEntryAtPath", inputShape, path);
         ErrorLogger.logError({
           location: runtime.prefix,
           error: {
             type: "nonexistentField",
-            prefix: ["TBD"],
-            datasetName: "TBD",
-            availableFields: ["TBD"],
-            field: "TBD"
+            datasetName: runtime.currDatasetName!,
+            field: path.toString()
           }
         });
         return failure;
@@ -44,11 +41,11 @@ export class TransformParser {
   fromSpec(runtime: Runtime, spec: {'type': string}): Result<Transform> {
     switch(spec.type){
       case 'aggregate':
-        return AggregateTransform.fromSpec(spec)
+        return AggregateTransform.fromSpec(runtime, spec)
       case 'filter':
-        return FilterTransform.fromSpec(spec)
+        return FilterTransform.fromSpec(runtime, spec)
       case 'formula':
-        return FormulaTransform.fromSpec(spec)
+        return FormulaTransform.fromSpec(runtime, spec)
       default:
         ErrorLogger.logError({
           location: runtime.prefix,

@@ -1,4 +1,4 @@
-import { Path } from "commonTypes"
+import { Path } from "../types/commonTypes"
 
 export type AccessError = NonexistentDatasetError | NonexistentFieldError | ArrayOutOfBoundsError | StringIndexedArrayError
 
@@ -6,8 +6,8 @@ interface NonexistentFieldError {
   type: 'nonexistentField',
   datasetName: string,
   object?: string,
-  prefix: Path,
-  availableFields: string[],
+  prefix?: Path,
+  availableFields?: string[],
   field: string
 }
 

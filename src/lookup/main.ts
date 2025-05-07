@@ -1,8 +1,7 @@
-import { failure, isFailure, Key, Path, Result } from "../commonTypes";
+import { failure, isFailure, Key, Path, Result, Runtime, Scope } from "../types/commonTypes";
 import { Shape } from "../shape-inference/types";
 import * as ErrorLogger from '../logging/errorLogger'
-import { isArray, isObject } from "../jsTypes";
-import { Scope } from "scope";
+import { isArray, isObject } from "../types/jsTypes";
 
 function getAvailableDatasets(scope: Scope | undefined): string[]{
     const res = new Set<string>()
@@ -14,7 +13,7 @@ function getAvailableDatasets(scope: Scope | undefined): string[]{
     return Array.from(res)
 }
   
-export function lookupDataset(datasetName: string, scope: Scope | undefined): Result<Shape>{
+export function lookupDataset(runtime: Runtime, datasetName: string, scope: Scope | undefined): Result<Shape>{
     const originalScope = scope;
     while(scope != undefined){
       if(scope.datasets[datasetName] != undefined){
@@ -23,7 +22,7 @@ export function lookupDataset(datasetName: string, scope: Scope | undefined): Re
       scope = scope.parent
     }
     ErrorLogger.logError({
-      location: ["TODO"],
+      location: runtime.prefix,
       error: {
         type: 'nonexistentDataset',
         datasetName: datasetName,
@@ -49,13 +48,13 @@ export function getEntryAtPath(shape: Shape | undefined, path: Path): Shape | un
   return shape;
 }
   
-function lookupFieldPath(dataset: Shape, datasetName: string, path: Path): Result<Shape> {
+function lookupFieldPath(runtime: Runtime, dataset: Shape, datasetName: string, path: Path): Result<Shape> {
     for(let i = 0; i < path.length; i++){
       const field = path[i]
       const entry = getEntry(dataset, field)
       if(!entry){
         ErrorLogger.logError( {
-          location: ["TODO"],
+          location: runtime.prefix,
           error: {
             type: 'nonexistentField',
             datasetName: datasetName,
@@ -71,11 +70,11 @@ function lookupFieldPath(dataset: Shape, datasetName: string, path: Path): Resul
     return dataset
 }
   
-export function shapeAt(datasetName: string, path: Path, scope: Scope): Result<Shape> {
-    const dataset = lookupDataset(datasetName, scope)
+export function shapeAt(runtime: Runtime, datasetName: string, path: Path, scope: Scope): Result<Shape> {
+    const dataset = lookupDataset(runtime, datasetName, scope)
     if(isFailure(dataset))
       return failure
-    const field = lookupFieldPath(dataset, datasetName, path)
+    const field = lookupFieldPath(runtime, dataset, datasetName, path)
     if(isFailure(field))
       return failure
     return field

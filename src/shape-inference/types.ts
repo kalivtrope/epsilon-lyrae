@@ -1,5 +1,5 @@
-import { isArray, isObject } from '../jsTypes'
-import {Dict, Path} from '../commonTypes'
+import { isArray, isObject } from '../types/jsTypes'
+import {Dict, Path} from '../types/commonTypes'
 import { isBoolean, isNumber, isString } from 'vega'
 
 //export const booleanPrimitive: unique symbol = Symbol("boolean") 

@@ -1,11 +1,9 @@
-import { toResult, failure, Field, isFailure, Result, getOutputField, isResultArray, } from "../commonTypes"
+import { toResult, failure, Field, isFailure, Result, getOutputField, isResultArray, Runtime, } from "../types/commonTypes"
 import { numberPrimitive, Shape } from "../shape-inference/types"
 import { toPath, toShapeResultArray, Transform } from "./transform"
-import { zip } from "../jsTypes"
+import { zip } from "../types/jsTypes"
 import { checkFieldArrayFormat, checkFieldFormat, checkStringArrayFormat } from "./formatChecking"
-import { getEntryAtPath, shapeAt } from "../lookup/main"
-import { Scope } from "../scope"
-import { Runtime } from "../index"
+import { getEntryAtPath } from "../lookup/main"
 
 
 export class AggregateTransform {
@@ -20,7 +18,7 @@ export class AggregateTransform {
       return failure
     }
     if(this.key != undefined){
-      const res = getEntryAtPath(inputShape, toPath(this.key))
+      const res = getEntryAtPath(inputShape, toPath(runtime, this.key))
       if(isFailure(res)){
         return failure
       }
@@ -47,6 +45,7 @@ export class AggregateTransform {
     return outShape
   }
   constructor(
+    private runtime: Runtime,
     private groupby: Field[],
     private fields: Field[],
     private ops: string[],
@@ -54,22 +53,22 @@ export class AggregateTransform {
     private key: Field | undefined
   ) {
   }
-  static fromSpec(spec: {'type': string}): Result<Transform> {
+  static fromSpec(runtime: Runtime, spec: {'type': string}): Result<Transform> {
     const aggSpec = spec as {
       'type': string,
       'groupby': unknown,
       'fields': unknown,
       'ops': unknown,
       'as': unknown,
-      'key': unknown                 
+      'key': unknown
       }   
-    if(!checkFieldArrayFormat(aggSpec.groupby, "groupby")
-    || !checkFieldArrayFormat(aggSpec.fields, "fields")
-    || !checkStringArrayFormat(aggSpec.ops, "ops")
-    || !checkStringArrayFormat(aggSpec.as, "as")
-    || !checkFieldFormat(aggSpec.key, "key")){
+    if(!checkFieldArrayFormat(runtime, aggSpec.groupby, "groupby")
+    || !checkFieldArrayFormat(runtime, aggSpec.fields, "fields")
+    || !checkStringArrayFormat(runtime, aggSpec.ops, "ops")
+    || !checkStringArrayFormat(runtime, aggSpec.as, "as")
+    || !checkFieldFormat(runtime, aggSpec.key, "key")){
       return failure;
-    } 
+    }
     const groupby = aggSpec.groupby || []
     const _fields = (aggSpec.fields || [])
     if(!_fields.every(val => !isFailure(val))){
@@ -79,6 +78,6 @@ export class AggregateTransform {
     const ops = (aggSpec.ops || ['count'])
     const as = aggSpec.as || []
     const key = aggSpec.key
-    return new AggregateTransform(groupby, fields, ops, as, key);
+    return new AggregateTransform(runtime, groupby, fields, ops, as, key);
   }
 }

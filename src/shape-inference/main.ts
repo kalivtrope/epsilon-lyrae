@@ -1,7 +1,6 @@
-import {Dict, failure, Intersection, isFailure, Result} from '../commonTypes'
-import { Context, Shape, SimplifiedType, getSimplifiedTypeForList, stringPrimitive } from './types'
+import {Dict, failure, Intersection, isFailure, Result, Runtime} from '../types/commonTypes'
+import { Context, Shape, getSimplifiedTypeForList, stringPrimitive } from './types'
 import * as ErrorLogger from '../logging/errorLogger'
-import { Runtime } from '../index'
 
 function getKeyIntersection(runtime: Runtime, dataset: Dict[], ctx: Context): Result<Intersection> {
   if(dataset.length == 0){

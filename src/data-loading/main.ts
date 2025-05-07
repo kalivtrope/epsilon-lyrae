@@ -1,11 +1,16 @@
 import * as vega from 'vega';
-import { isObject, toArray } from '../jsTypes';
-import { Dict, failure, Result } from '../commonTypes';
+import { isObject, toArray } from '../types/jsTypes';
+import { Dict, failure, Result, Runtime, Scope } from '../types/commonTypes';
 import { Format } from 'vega';
 import * as WarningLogger from '../logging/warningLogger'
 import * as ErrorLogger from '../logging/errorLogger'
-import { Runtime } from 'index';
-import { Scope } from '../scope';
+import { UnsupportedFeatureWarning } from '../warnings/warnings';
+
+
+const signalWarning: UnsupportedFeatureWarning = {
+  type: "unsupportedFeature",
+  message: "Signals aren't supported."
+}
 
 function isSignal(x: unknown): boolean {
   return !!x && !!(isObject(x) && x.signal);
@@ -22,19 +27,9 @@ function hasSignal(x: unknown) {
   return false;
 }
 
-export interface UnsupportedFeatureWarning {
-  type: "unsupportedFeature"
-  message: string
-}
+/*
 
-export function isUnsupportedFeatureWarning(val: unknown): val is UnsupportedFeatureWarning {
-  return (val as UnsupportedFeatureWarning).type == "unsupportedFeature"
-}
-const signalWarning: UnsupportedFeatureWarning = {
-  type: "unsupportedFeature",
-  message: "Signals aren't supported."
-}
-
+*/
 function lookupDatasetData(scope: Scope | undefined, datasetName: string): unknown[] | undefined {
   while(scope != undefined){
     if(scope.datasetData[datasetName] != undefined){
@@ -45,6 +40,8 @@ function lookupDatasetData(scope: Scope | undefined, datasetName: string): unkno
   return undefined;
 }
 
+/*
+*/
 export async function loadDatasetData(runtime: Runtime, dataset: Record<string, unknown>): Promise<Result<unknown[]>>{
   const loader = vega.loader()
   const name: string = dataset.name as string
@@ -70,9 +67,20 @@ export async function loadDatasetData(runtime: Runtime, dataset: Record<string, 
       return failure
     }
     else{
-      await loader.load(dataset.url as string).then((ds) => {
-        outData = vega.read(ds, dataset.format as Format);
-      });
+      try{
+        await loader.load(dataset.url as string).then((ds) => {
+          outData = vega.read(ds, dataset.format as Format);
+        });
+      }
+      catch(e){
+        ErrorLogger.logError({
+          location: runtime.prefix,
+          error: {
+            type: 'urlLoadingError',
+            url: dataset.url as string
+          }
+        })
+      }
     }
   }
   else if(dataset.source){

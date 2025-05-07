@@ -1,4 +1,4 @@
-import { Path } from "../commonTypes";
+import { Path } from "../types/commonTypes";
 
 export type ExpressionError = UnsupportedOperationError | UnknownFunctionError | UnsupportedIndexError | UnsupportedObjectError | UnsupportedExpressionError
             | PrimitiveIndexError | InvalidOperands | InvalidCallError | NotAFunctionError | UnsupportedKeyError;

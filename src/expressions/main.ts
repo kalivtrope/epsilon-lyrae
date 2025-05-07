@@ -1,32 +1,17 @@
-import { isArray, isNumber, isObject, isString, parseExpression } from "vega"
+import { isArray, isNumber, isString } from "vega"
 import {Expression, Identifier, Literal, PrivateIdentifier, Property, SpreadElement, Super} from "estree"
-import { Context, failure, isFailure, Path, Result } from "../commonTypes"
-import { Scope } from "../scope";
+import { Context, failure, isFailure, Path, Result, Runtime, Scope } from "../types/commonTypes"
 import { Primitive, Shape, isPrimitive, numberPrimitive, isNumberPrimitive, isStringPrimitive, stringPrimitive, booleanPrimitive, combinePrimitives } from "../shape-inference/types";
 import * as ErrorLogger from '../logging/errorLogger'
 import {generate} from "astring"
-import { lookupDataset } from "lookup/main";
-import { Runtime } from "../index";
 
 export class ExpressionContext {
-
     static constants = ["E", "PI"]
     static boolean_unary_functions = ["isBoolean", "isNumber", "isObject", "isString"]
     static number_binary_functions = ["min", "max", "exp"]
     static fieldvar = "datum"
-    depth = 0
-    prefix: Path = []
     datasetName: string
     scope: Scope
-    pushKey(key: string){
-        this.prefix.push(key)
-    }
-    popKey(){
-        this.prefix.pop();
-    }
-    getDepth(){
-        return this.depth;
-    }
     static isConstant(name: string) {
         return ExpressionContext.constants.includes(name)
     }
@@ -50,10 +35,6 @@ export class ExpressionContext {
         this.scope = scope
     }
 }
-/*
-export function* extractPathsFromString(expr: string, ctx: ExpressionContext): IterableIterator<Path>{
-    yield* extractPathsFromExpression(parseExpression(expr), ctx, 0)
-}*/
 
 function objectIsExpression(obj: Expression | Super): obj is Expression {
     return obj.type != "Super";
@@ -89,10 +70,10 @@ function indexShape(runtime: Runtime, shape: Shape, index: string | number,  obj
     if(isArray(shape)){
         if(!isNumber(index)){
             ErrorLogger.logError({
-                location: runtime.prefix, // TODO: scope, dataset "" definition, n-th transformation
+                location: runtime.prefix,
                 error: {
                     type: "stringIndexedArray",
-                    datasetName: "TBD",
+                    datasetName: runtime.currDatasetName!,
                     array: generate(objExpr),
                     index: index
                 }
@@ -105,7 +86,7 @@ function indexShape(runtime: Runtime, shape: Shape, index: string | number,  obj
                 error: {
                     type: "outOfBounds",
                     index: index,
-                    datasetName: "TBD",
+                    datasetName: runtime.currDatasetName!,
                     array: generate(objExpr),
                     length: shape.length
                 }
@@ -120,7 +101,7 @@ function indexShape(runtime: Runtime, shape: Shape, index: string | number,  obj
             error: {
                 type: "primitiveIndexError",
                 index: index,
-                datasetName: "TBD",
+                datasetName: runtime.currDatasetName!,
                 primitive: generate(objExpr)
             }
         })
@@ -132,9 +113,8 @@ function indexShape(runtime: Runtime, shape: Shape, index: string | number,  obj
             location: runtime.prefix,
             error: {
                 type: "nonexistentField",
-                datasetName: "TBD",
+                datasetName: runtime.currDatasetName!,
                 object: generate(objExpr),
-                prefix: [],
                 field: index.toString(),
                 availableFields: Object.keys(shape)
             }
@@ -177,7 +157,6 @@ function shapeIntersection(lhs: Shape, rhs: Shape): Shape {
 }
 
 export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape: Shape): Result<Shape>{
-    //console.log("got expr type", expr.type)
     switch(expr.type){
         case "MemberExpression":
             const object = expr.object;
@@ -252,7 +231,7 @@ export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape:
                 else{
                     ErrorLogger.logError(
                         {
-                            location: ["TODO"],
+                            location: runtime.prefix,
                             error: {
                                 type: "invalidCall",
                                 callee: generate(callee),
@@ -266,7 +245,7 @@ export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape:
             }
             ErrorLogger.logError(
                 {
-                    location: ["TODO"],
+                    location: runtime.prefix,
                     error: {
                         type: "notAFunction",
                         identifier: generate(callee)
@@ -285,7 +264,7 @@ export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape:
                 // currently supported operations operate only on primitives
                 ErrorLogger.logError(
                     {
-                        location: ["TODO"],
+                        location: runtime.prefix,
                         error: {
                             type: "invalidOperands",
                             operation: op,
@@ -310,7 +289,7 @@ export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape:
                     }
                     ErrorLogger.logError(
                         {
-                            location: ["TODO"],
+                            location: runtime.prefix,
                             error: {
                                 type: "invalidOperands",
                                 operation: op,
@@ -324,11 +303,15 @@ export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape:
                 case ">":
                 case "<=":
                 case ">=":
+                case "==":
+                case "!=":
+                case "===":
+                case "!==":
                     return booleanPrimitive;
                 default:
                     ErrorLogger.logError(
                         {
-                            location: ["TODO"],
+                            location: runtime.prefix,
                             error: {
                                 type: "unsupportedOperation",
                                 operation: op
@@ -386,7 +369,7 @@ export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape:
                     else {
                         ErrorLogger.logError(
                             {
-                                location: ["TODO"],
+                                location: runtime.prefix,
                                 error: {
                                     type: "unsupportedKey",
                                     key: generate(key)
@@ -407,7 +390,7 @@ export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape:
         default:
             ErrorLogger.logError(
                 {
-                    location: ["TODO"],
+                    location: runtime.prefix,
                     error: {
                         type: "unsupportedExpression",
                         exprType: expr.type,
@@ -434,8 +417,3 @@ export function inferOutputShape(runtime: Runtime, expr: Expression, inputShape:
         case "YieldExpression":*/
     }
 }
-
-//console.log("Hello!")
-//console.dir(parseExpression("datum.x.y.z[3]['hello']"), { depth: null})
-
-
