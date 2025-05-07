@@ -1,0 +1,172 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "A basic line chart example.",
+  "width": 500,
+  "height": 200,
+  "padding": 5,
+  "signals": [
+    {
+      "name": "tooltip",
+      "value": {},
+      "on": [
+        {"events": "line:mouseover", "update": "datum"},
+        {"events": "line:mouseout", "update": "{}"}
+      ]
+    }
+  ],
+
+  "data": [
+    {
+      "name": "table",
+      "format": {
+        "type": "csv",
+        "parse": {"nbclauses": "number", "nbbackbones": "number", "avg_time": "number", "avg_calls": "number"},
+        "header": ["solver", "nbclauses", "nbbackbones", "avg_time", "avg_calls"]
+      },
+      "values": "minisat,403,10,0.005101,47.0\nglucose,403,10,0.007661,48.5\ncadical,403,10,0.010308,44.1\nlingeling,403,10,0.036966,49.0\nminisat,403,30,0.003855,33.9\nglucose,403,30,0.005807,34.6\ncadical,403,30,0.008622,33.1\nlingeling,403,30,0.029104,34.7\nminisat,403,50,0.003362,25.2\nglucose,403,50,0.005055,25.7\ncadical,403,50,0.007946,25.0\nlingeling,403,50,0.026261,25.5\nminisat,403,70,0.003122,23.5\nglucose,403,70,0.004749,23.4\ncadical,403,70,0.007741,23.0\nlingeling,403,70,0.025186,23.3\nminisat,403,90,0.002816,11.7\nglucose,403,90,0.004334,11.6\ncadical,403,90,0.007396,11.6\nlingeling,403,90,0.024171,11.6\nminisat,411,10,0.005094,46.7\nglucose,411,10,0.007855,49.0\ncadical,411,10,0.010129,44.6\nlingeling,411,10,0.036779,49.3\nminisat,411,30,0.003704,34.2\nglucose,411,30,0.005623,34.7\ncadical,411,30,0.008430,33.3\nlingeling,411,30,0.028431,34.9\nminisat,411,50,0.003316,25.7\nglucose,411,50,0.004979,26.0\ncadical,411,50,0.007778,25.3\nlingeling,411,50,0.025556,26.0\nminisat,411,70,0.002986,23.2\nglucose,411,70,0.004537,23.2\ncadical,411,70,0.007393,23.0\nlingeling,411,70,0.023627,23.4\nminisat,411,90,0.002687,11.6\nglucose,411,90,0.004086,11.6\ncadical,411,90,0.006939,11.7\nlingeling,411,90,0.022810,11.7\nminisat,449,10,0.004592,51.9\nglucose,449,10,0.007084,53.8\ncadical,449,10,0.008997,48.9\nlingeling,449,10,0.033732,55.0\nminisat,449,30,0.003221,36.2\nglucose,449,30,0.004776,37.1\ncadical,449,30,0.007002,35.4\nlingeling,449,30,0.024419,37.8\nminisat,449,50,0.002628,26.4\nglucose,449,50,0.003857,26.6\ncadical,449,50,0.005949,25.9\nlingeling,449,50,0.020099,26.8\nminisat,449,70,0.002365,22.5\nglucose,449,70,0.003447,22.7\ncadical,449,70,0.005586,22.3\nlingeling,449,70,0.018603,22.8\nminisat,449,90,0.002059,11.5\nglucose,449,90,0.002963,11.5\ncadical,449,90,0.005076,11.6\nlingeling,449,90,0.016964,11.5",
+      "transform": [
+        {"type":"filter", "expr": "datum.nbclauses == 411"},
+        {"type":"formula",
+         "expr": "datum.avg_time * 1000",
+         "as": "avg_time_msec"}
+      ]
+    },
+    {
+      "name": "average_per_backbone_count",
+      "source": "table",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": ["nbbackbones"],
+          "fields": ["avg_time_msec"],
+          "ops": ["average"]
+        },
+        {
+          "type": "formula",
+          "as": "solver",
+          "expr": "\"average\""
+        }
+      ]
+    }
+  ],
+
+  "scales": [
+    {
+      "name": "n",
+      "type": "point",
+      "range": "width",
+      "domain": {"data": "table", "field": "nbbackbones"}
+    },
+    {
+      "name": "time",
+      "type": "linear",
+      "zero":true,
+      "range": "height",
+      "nice": true,
+      "domain": {"data": "table", "field": "avg_time_msec"}
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "range": "category",
+      "domain": {
+        "fields": [
+          {"data": "table", "field": "solver"},
+          {"data": "average_per_backbone_count", "field": "solver"}
+        ]
+      }
+    }
+  ],
+
+  "axes": [
+    {"orient": "bottom", "scale": "n", "title": "# of backbones"},
+    {"orient": "left", "scale": "time",
+    "title": "avg time (msec)"}
+  ],
+  "legends": [
+    {
+      "fill": "color",
+      "title": "Solvers",
+      "offset": 0,
+      "encode": {
+        "symbols": {
+          "update": {
+            "fillOpacity": {"value": 1},
+            "stroke": {"value": "transparent"}
+          }
+        }
+      }
+    }
+  ],
+
+  "marks": [
+    {
+      "type": "text",
+      "name": "solverText",
+      "encode": {
+        "enter": {
+          "align": {"value": "center"},
+          "baseline": {"value": "bottom"},
+          "fill": {"value": "#444"},
+          "fontSize": {"value": 30}
+        },
+        "update": {
+          "x": {"signal": "width/2"},
+          "y": {"signal": "height/2+20"},
+          "text": [
+            {"test": "tooltip.solver", "signal": "\"solver: \" + tooltip.solver"},
+            {"value": ""}
+          ]
+        }
+      }
+    },
+    {
+      "type": "line",
+      "name": "avg",
+      "from": {"data": "average_per_backbone_count"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "n", "field": "nbbackbones"},
+          "y": {"scale": "time", "field": "average_avg_time_msec"},
+          "stroke": {"scale": "color", "field": "solver"},
+          "strokeDash": {"value": [8,4]}
+        },
+        "update": {
+          "strokeWidth": {"value": 2}
+        },
+        "hover": {
+          "strokeWidth": {"value": 4}
+        }
+      }
+    },
+    {
+      "type": "group",
+      "from": {
+        "facet": {
+          "name": "series",
+          "data": "table",
+          "groupby": "solver"
+        }
+      },
+      "marks": [
+        {
+          "type": "line",
+          "from": {"data": "series"},
+          "encode": {
+            "enter": {
+              "x": {"scale": "n", "field": "nbbackbones"},
+              "y": {"scale": "time", "field": "avg_time_msec"},
+              "stroke": {"scale": "color", "field": "solver"}
+            },
+            "update": {
+              "strokeWidth": {"value": 3}
+            },
+            "hover": {
+              "strokeWidth": {"value": 5}
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

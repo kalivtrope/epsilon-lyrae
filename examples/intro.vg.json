@@ -1,0 +1,21 @@
+{ "data": [
+  {
+    "name": "tuples",
+    "url": "data/sample.json",
+    "transform": [
+    {
+      "type": "filter",
+      "expr": "datum.a >= datum.e"
+    },
+    {
+      "type": "aggregate",
+      "groupby": ["a", "b"],
+      "fields": ["c"],
+      "ops": ["average"], "as": ["d"]
+    },
+    {
+      "type": "formula", "as": "out",
+      "expr": "datum.e * datum.a"
+    }]
+  }]
+}
