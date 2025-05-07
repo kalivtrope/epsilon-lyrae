@@ -30,7 +30,7 @@ yarn start < path/to/spec.vg.json
 
 ### Docker image
 Alternatively, if you don't want to build the project yourself,
-you can use the prebuilt Docker image [here](TODO).
+you can use the prebuilt Docker image [here](https://github.com/kalivtrope/epsilon-lyrae/releases/tag/v0.1.0).
 
 ## Usage
 The program expects a Vega specification on standard input.
